@@ -1,0 +1,35 @@
+spider_msgs:
+  - changed-files:
+      - any-glob-to-any-file: ['spider_msgs/**']
+
+description:
+  - changed-files:
+      - any-glob-to-any-file: ['big_bertha_description/**']
+
+locomotion:
+  - changed-files:
+      - any-glob-to-any-file: ['big_bertha_policy_controller/**']
+
+simulation:
+  - changed-files:
+      - any-glob-to-any-file: ['big_bertha_sim_bringup/worlds/**', 'big_bertha_sim_bringup/launch/simulation/**']
+
+autonomy:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'big_bertha_sim_bringup/launch/mapping/**'
+          - 'big_bertha_sim_bringup/launch/localization/**'
+          - 'big_bertha_sim_bringup/launch/planning/**'
+          - 'big_bertha_sim_bringup/launch/state_estimation/**'
+
+hardware:
+  - changed-files:
+      - any-glob-to-any-file: ['big_bertha_bringup/**']
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**']
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*.md']

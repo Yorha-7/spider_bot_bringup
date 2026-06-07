@@ -1,0 +1,53 @@
+name: ROS 2 CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  colcon:
+    name: colcon build & test (Jazzy · ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm   # native arm64 — matches UNO Q deploy target
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up ROS 2 Jazzy
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: jazzy
+
+      - name: Install ONNX Runtime (C++)
+        run: |
+          ORT_VER=1.20.1
+          case "${{ matrix.arch }}" in
+            amd64) ORT_ARCH=x64 ;;
+            arm64) ORT_ARCH=aarch64 ;;
+          esac
+          curl -fsSL -o /tmp/ort.tgz \
+            "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VER}/onnxruntime-linux-${ORT_ARCH}-${ORT_VER}.tgz"
+          sudo mkdir -p /opt/onnxruntime
+          sudo tar -xzf /tmp/ort.tgz -C /opt/onnxruntime --strip-components=1
+
+      - name: Build & test
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          target-ros2-distro: jazzy
+          import-token: ${{ secrets.GITHUB_TOKEN }}
+          package-name: >
+            spider_msgs
+            big_bertha_description
+            big_bertha_policy_controller
+            big_bertha_sim_bringup
+            big_bertha_bringup
+          colcon-extra-args: >
+            --cmake-args -DONNXRUNTIME_ROOT=/opt/onnxruntime
