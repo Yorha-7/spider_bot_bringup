@@ -2,6 +2,9 @@
 
 bool PCA9685::begin(TwoWire &wire) {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
   _wire = &wire;
   writeReg(PCA9685_MODE1, 0x00);
   delay(10);
@@ -56,6 +59,7 @@ void PCA9685::writeReg(uint8_t reg, uint8_t val) {
   _wire->write(reg);
   _wire->write(val);
   _wire->endTransmission();
+<<<<<<< HEAD
 =======
   _wire = &wire;
   writeReg(PCA9685_MODE1, 0x00);
@@ -112,4 +116,6 @@ void PCA9685::writeReg(uint8_t reg, uint8_t val) {
   _wire->write(val);
   _wire->endTransmission();
 >>>>>>> fd42369 (feat: MPU6050 and PAC9685 hardware interface for big_bertha)
+=======
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
 }

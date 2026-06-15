@@ -20,6 +20,7 @@
 #include "pca9685.h"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #define IMU_INTERVAL_US 5000
 #define NUM_SERVOS 12
 #define SERVO_FREQ 50
@@ -28,6 +29,11 @@
 #define NUM_SERVOS 12
 #define SERVO_FREQ 50
     >>>>>>> fd42369 (feat: MPU6050 and PAC9685 hardware interface for big_bertha)
+=======
+#define IMU_INTERVAL_US 5000
+#define NUM_SERVOS 12
+#define SERVO_FREQ 50
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
 
     MPU6050 mpu;
 PCA9685 pca;
@@ -37,6 +43,9 @@ static uint32_t _lastImuUs = 0;
 
 static String readImuCallback() {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
   char buf[96];
   snprintf(buf, sizeof(buf), "%.6f %.6f %.6f %.6f %.6f %.6f", (double)_gx,
            (double)_gy, (double)_gz, (double)_ax, (double)_ay, (double)_az);
@@ -98,6 +107,7 @@ void loop() {
     mpu.read(_gx, _gy, _gz, _ax, _ay, _az);
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
+<<<<<<< HEAD
 =======
   char buf[96];
   snprintf(buf, sizeof(buf), "%.6f %.6f %.6f %.6f %.6f %.6f", (double)_gx,
@@ -161,4 +171,6 @@ void loop() {
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
 >>>>>>> fd42369 (feat: MPU6050 and PAC9685 hardware interface for big_bertha)
+=======
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
 }

@@ -5,6 +5,7 @@
 #include <Wire.h>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #define PCA9685_ADDR 0x40
 #define PCA9685_MODE1 0x00
 #define PCA9685_PRESCALE 0xFE
@@ -25,6 +26,8 @@ private:
 
   void writeReg(uint8_t reg, uint8_t val);
 =======
+=======
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
 #define PCA9685_ADDR 0x40
 #define PCA9685_MODE1 0x00
 #define PCA9685_PRESCALE 0xFE
@@ -44,7 +47,10 @@ private:
   uint16_t _periodUs = 20000;
 
   void writeReg(uint8_t reg, uint8_t val);
+<<<<<<< HEAD
 >>>>>>> fd42369 (feat: MPU6050 and PAC9685 hardware interface for big_bertha)
+=======
+>>>>>>> f67f2ae (fix: fixed PR compilance pre commit)
 };
 
 #endif
