@@ -1,3 +1,7 @@
+import socket
+import time
+
+import msgpack
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
@@ -5,10 +9,85 @@ from sensor_msgs.msg import Imu
 from std_msgs.msg import Float64MultiArray
 from std_srvs.srv import Trigger
 
-try:
-    from arduino_router_bridge import Bridge
-except ImportError:
-    Bridge = None
+
+class RouterBridge:
+    def __init__(self, sock_path="/var/run/arduino-router.sock"):
+        self._sock_path = sock_path
+        self._sock = None
+        self._next_id = 1
+        self._connect()
+
+    def _connect(self):
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(3.0)
+        sock.connect(self._sock_path)
+        self._sock = sock
+
+    def close(self):
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
+
+    def call(self, method, *args):
+        if self._sock is None:
+            raise RuntimeError("not connected")
+        rpc_id = self._next_id
+        self._next_id += 1
+        req = msgpack.packb([0, rpc_id, method, list(args)])
+        try:
+            self._sock.sendall(req)
+        except (BrokenPipeError, ConnectionError, OSError):
+            self.close()
+            self._connect()
+            self._sock.sendall(req)
+
+        self._sock.settimeout(1.0)
+        resp = b""
+        try:
+            while True:
+                chunk = self._sock.recv(4096)
+                if not chunk:
+                    break
+                resp += chunk
+                try:
+                    msgpack.unpackb(resp, raw=False,
+                                    max_array_len=16, max_map_len=16,
+                                    max_str_len=4096)
+                    break
+                except (msgpack.exceptions.UnpackValueError,
+                        msgpack.exceptions.OutOfData):
+                    continue
+                except (ValueError, msgpack.exceptions.ExtraData,
+                        msgpack.exceptions.FormatError):
+                    break
+        except socket.timeout:
+            if not resp:
+                raise
+
+        if not resp:
+            raise RuntimeError("empty response from router")
+
+        result = msgpack.unpackb(resp, raw=False,
+                                 max_array_len=16, max_map_len=16,
+                                 max_str_len=4096)
+        if len(result) < 4:
+            raise RuntimeError(f"invalid RPC response: {result}")
+        if result[2] is not None:
+            raise RuntimeError(f"RPC error: {result[2]}")
+        return result[3]
+
+
+class MockBridge:
+    def call(self, fn, *args):
+        if fn == "read_imu":
+            return "0.0 0.0 0.0 0.0 0.0 9.81"
+        return "ok"
+
+    def close(self):
+        pass
 
 
 class HardwareBridgeNode(Node):
@@ -19,13 +98,15 @@ class HardwareBridgeNode(Node):
             namespace="",
             parameters=[
                 ("imu_frame_id", "imu_link"),
-                ("imu_rate", 200.0),
+                ("imu_rate", 30.0),
                 ("servo_count", 12),
                 ("servo_freq", 50),
                 ("servo_angle_min", -1.57),
                 ("servo_angle_max", 1.57),
                 ("servo_pulse_min", 500),
                 ("servo_pulse_max", 2500),
+                ("router_socket", "/var/run/arduino-router.sock"),
+                ("mock", False),
             ],
         )
 
@@ -38,12 +119,13 @@ class HardwareBridgeNode(Node):
         self._angle_max = self.get_parameter("servo_angle_max").value
         self._pulse_min = self.get_parameter("servo_pulse_min").value
         self._pulse_max = self.get_parameter("servo_pulse_max").value
+        self._mock = self.get_parameter("mock").value
 
         self._bridge = None
         self._init_bridge()
 
         imu_qos = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
+            reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             depth=1,
         )
@@ -64,30 +146,36 @@ class HardwareBridgeNode(Node):
 
         self.get_logger().info(
             f"Started | IMU @ {self._imu_rate} Hz on /{self._imu_frame}"
-            f" | {self._servo_count} servos via Bridge"
+            f" | {self._servo_count} servos"
+            f" | {'MOCK' if self._mock else 'HW'}"
         )
 
     def _init_bridge(self):
-        if Bridge is None:
-            self.get_logger().warning(
-                "arduino_router_bridge not found — running in mock mode"
-            )
+        if self._mock:
+            self.get_logger().warning("Mock mode enabled — no hardware")
             self._bridge = MockBridge()
             return
+
         try:
-            self._bridge = Bridge()
-            self.get_logger().info("Arduino Router Bridge connected")
+            sock_path = self.get_parameter("router_socket").value
+            self._bridge = RouterBridge(sock_path)
+            self.get_logger().info(f"Connected to router at {sock_path}")
         except Exception as e:
-            self.get_logger().error(f"Bridge init failed: {e}")
+            self.get_logger().error(f"RouterBridge init failed: {e}")
+            self.get_logger().warning("Falling back to mock mode")
             self._bridge = MockBridge()
 
     def _publish_imu(self):
         if self._bridge is None:
             return
         try:
+            t0 = time.monotonic()
             raw = self._bridge.call("read_imu")
+            dt = (time.monotonic() - t0) * 1000
         except Exception as e:
-            self.get_logger().warn(f"read_imu failed: {e}", throttle_duration=5.0)
+            self.get_logger().warn(
+                f"read_imu failed: {e}", throttle_duration_sec=5.0
+            )
             return
 
         parts = raw.strip().split()
@@ -130,7 +218,9 @@ class HardwareBridgeNode(Node):
         try:
             self._bridge.call("set_servos", pulse_str)
         except Exception as e:
-            self.get_logger().warn(f"set_servos failed: {e}", throttle_duration=2.0)
+            self.get_logger().warn(
+                f"set_servos failed: {e}", throttle_duration_sec=2.0
+            )
 
     def _rad_to_pulse(self, rad: float) -> int:
         t = (rad - self._angle_min) / (self._angle_max - self._angle_min)
@@ -152,13 +242,6 @@ class HardwareBridgeNode(Node):
         return response
 
 
-class MockBridge:
-    def call(self, fn, *args):
-        if fn == "read_imu":
-            return "0.0 0.0 0.0 0.0 0.0 9.81"
-        return "ok"
-
-
 def main(args=None):
     rclpy.init(args=args)
     node = HardwareBridgeNode()
@@ -167,6 +250,8 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
+        if node._bridge is not None:
+            node._bridge.close()
         node.destroy_node()
         rclpy.shutdown()
 
