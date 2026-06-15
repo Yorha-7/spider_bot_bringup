@@ -16,10 +16,11 @@ diagrams, CI, and execution plan.
 ## Packages
 
 | Package | Type | Role |
-|---|---|---|---|
+|---|---|---|---|---|
 | [`spider_msgs`](./spider_msgs) | `ament_cmake` | Robot-agnostic interfaces (shared with the future Lil Spider) |
 | [`big_bertha_description`](./big_bertha_description) | `ament_cmake` | URDF/xacro, meshes, `ros2_control` |
 | [`big_bertha_policy_controller`](./big_bertha_policy_controller) | `ament_cmake` (C++) | ONNX gait node: `/cmd_vel` → 12 joint targets |
+| [`big_bertha_leg_odometry`](./big_bertha_leg_odometry) | `ament_cmake` (C++) | Leg odometry: joint FK → base twist on `/leg_odom` |
 | [`big_bertha_sim_bringup`](./big_bertha_sim_bringup) | `ament_cmake` | Gazebo sim: world, SLAM, Nav2, RViz |
 | [`big_bertha_hardware_bringup`](./big_bertha_hardware_bringup) | `ament_python` | Hardware bringup: MPU6050 + PCA9685 via Bridge |
 
@@ -60,7 +61,7 @@ exists because the deploy target is arm64.)
 | 3 | Simulation (Gazebo world + bridge) | ✅ Done |
 | 4 | Locomotion (C++ ONNX gait controller) | ✅ Done |
 | 5 | MPU6050 + PCA9685 driver | ✅ Done |
-| 6 | Leg odometry | ❌ Not started |
+| 6 | Leg odometry | ✅ Done |
 | 7 | State estimation (robot_localization EKF) | ❌ Not started |
 | 8 | Mapping (slam_toolbox) | ❌ Not started |
 | 9 | Localization (AMCL + map_server) | ❌ Not started |
@@ -70,7 +71,7 @@ exists because the deploy target is arm64.)
 ### Hardware bringup order
 
 1. ✅ **MPU6050 + PCA9685 driver** — combined ROS 2 bridge node (`hardware_bridge`)
-2. ❌ **Leg odometry** — compute `/odom` (`nav_msgs/Odometry`) from joint kinematics
+2. ✅ **Leg odometry** — compute `/leg_odom` (`nav_msgs/Odometry`) from joint kinematics
 3. ❌ **YDLidar X2** — `ydlidar_ros2_driver` → `/scan` (`sensor_msgs/LaserScan`)
 4. ❌ **State estimation → mapping → localization → planning** (identical config to sim, `use_sim_time:=false`)
 
