@@ -1,0 +1,26 @@
+# Parameters for the Big Bertha leg odometry node (C++).
+#
+# Computes base twist from joint-state forward kinematics and stance-contact
+# detection.  Publishes /leg_odom for fusion in robot_localization EKF.
+/**:
+  ros__parameters:
+    publish_rate: 50.0          # Hz
+    odom_frame: "odom"
+    base_frame: "base_link"
+    ground_height: 0.0          # m; world-frame ground-plane z
+    stance_threshold: 0.03      # m; foot z in base frame below this = stance
+    covariance_scale: 0.01      # scales pose + twist covariance diagonals
+    publish_tf: true            # broadcast odom -> base_link
+    joint_names:
+      - Revolute_110
+      - Revolute_111
+      - Revolute_112
+      - Revolute_113
+      - Revolute_114
+      - Revolute_115
+      - Revolute_116
+      - Revolute_117
+      - Revolute_118
+      - Revolute_119
+      - Revolute_120
+      - Revolute_121
