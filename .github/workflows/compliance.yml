@@ -30,8 +30,8 @@ jobs:
       - name: Every package has package.xml
         run: |
           for d in spider_msgs big_bertha_description big_bertha_policy_controller \
-                   big_bertha_leg_odometry big_bertha_sim_bringup \
-                   big_bertha_hardware_bringup; do
+                   big_bertha_leg_odometry big_bertha_state_estimation \
+                   big_bertha_sim_bringup big_bertha_hardware_bringup; do
             if [ -d "$d" ]; then
               test -f "$d/package.xml" || { echo "missing $d/package.xml"; exit 1; }
             fi

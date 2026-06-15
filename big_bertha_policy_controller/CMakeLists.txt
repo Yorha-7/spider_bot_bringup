@@ -18,12 +18,13 @@ find_package(spider_msgs REQUIRED)
 
 # ----------------------------- ONNX Runtime -------------------------------
 # Prebuilt ONNX Runtime (C++), located via -DONNXRUNTIME_ROOT (defaults to the
-# repo-local .onnxruntime download). Not provided by rosdep/apt on Jazzy.
+# repo-local .onnxruntime download). Auto-downloaded if not present.
 if(NOT DEFINED ONNXRUNTIME_ROOT)
   set(ONNXRUNTIME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.onnxruntime"
       CACHE PATH "ONNX Runtime install prefix")
 endif()
 
+set(ONNXRUNTIME_VERSION "1.20.1")
 find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
   HINTS ${ONNXRUNTIME_ROOT}/include
   PATH_SUFFIXES onnxruntime onnxruntime/core/session)
@@ -31,10 +32,43 @@ find_library(ONNXRUNTIME_LIB onnxruntime
   HINTS ${ONNXRUNTIME_ROOT}/lib)
 
 if(NOT ONNXRUNTIME_INCLUDE_DIR OR NOT ONNXRUNTIME_LIB)
-  message(FATAL_ERROR
-    "ONNX Runtime not found under '${ONNXRUNTIME_ROOT}'. "
-    "Download v1.20.1 and pass -DONNXRUNTIME_ROOT=<path> "
-    "(see PLAN.md / repo README).")
+  message(STATUS "ONNX Runtime not found — downloading v${ONNXRUNTIME_VERSION}...")
+  set(ort_url
+    "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}.tgz")
+  set(ort_tgz "${CMAKE_BINARY_DIR}/ort-${ONNXRUNTIME_VERSION}.tgz")
+
+  file(DOWNLOAD "${ort_url}" "${ort_tgz}" SHOW_PROGRESS STATUS ort_status)
+  list(GET ort_status 0 ort_ok)
+  if(NOT ort_ok EQUAL 0)
+    message(FATAL_ERROR
+      "Failed to download ONNX Runtime from:\n  ${ort_url}\n"
+      "Try manually: curl -fsSL ${ort_url} -o /tmp/ort.tgz && "
+      "tar -xzf /tmp/ort.tgz --strip-components=1 -C ${ONNXRUNTIME_ROOT}")
+  endif()
+
+  file(MAKE_DIRECTORY "${ONNXRUNTIME_ROOT}")
+  find_program(TAR_EXECUTABLE tar)
+  execute_process(
+    COMMAND ${TAR_EXECUTABLE} -xzf "${ort_tgz}" --strip-components=1 -C "${ONNXRUNTIME_ROOT}"
+    RESULT_VARIABLE tar_result)
+  if(NOT tar_result EQUAL 0)
+    file(REMOVE_RECURSE "${ONNXRUNTIME_ROOT}")
+    message(FATAL_ERROR "Failed to extract ONNX Runtime to ${ONNXRUNTIME_ROOT}")
+  endif()
+
+  file(REMOVE "${ort_tgz}")
+  message(STATUS "ONNX Runtime v${ONNXRUNTIME_VERSION} extracted to ${ONNXRUNTIME_ROOT}")
+
+  find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
+    HINTS ${ONNXRUNTIME_ROOT}/include
+    PATH_SUFFIXES onnxruntime onnxruntime/core/session
+    NO_DEFAULT_PATH)
+  find_library(ONNXRUNTIME_LIB onnxruntime
+    HINTS ${ONNXRUNTIME_ROOT}/lib
+    NO_DEFAULT_PATH)
+  if(NOT ONNXRUNTIME_INCLUDE_DIR OR NOT ONNXRUNTIME_LIB)
+    message(FATAL_ERROR "ONNX Runtime download/extraction failed in ${ONNXRUNTIME_ROOT}")
+  endif()
 endif()
 message(STATUS "ONNX Runtime: ${ONNXRUNTIME_LIB}")
 

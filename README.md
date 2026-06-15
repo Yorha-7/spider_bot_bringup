@@ -21,6 +21,7 @@ diagrams, CI, and execution plan.
 | [`big_bertha_description`](./big_bertha_description) | `ament_cmake` | URDF/xacro, meshes, `ros2_control` |
 | [`big_bertha_policy_controller`](./big_bertha_policy_controller) | `ament_cmake` (C++) | ONNX gait node: `/cmd_vel` → 12 joint targets |
 | [`big_bertha_leg_odometry`](./big_bertha_leg_odometry) | `ament_cmake` (C++) | Leg odometry: joint FK → base twist on `/leg_odom` |
+| [`big_bertha_state_estimation`](./big_bertha_state_estimation) | `ament_cmake` | EKF config + launch: fuses `/leg_odom` + `/imu` |
 | [`big_bertha_sim_bringup`](./big_bertha_sim_bringup) | `ament_cmake` | Gazebo sim: world, SLAM, Nav2, RViz |
 | [`big_bertha_hardware_bringup`](./big_bertha_hardware_bringup) | `ament_python` | Hardware bringup: MPU6050 + PCA9685 via Bridge |
 
@@ -62,7 +63,7 @@ exists because the deploy target is arm64.)
 | 4 | Locomotion (C++ ONNX gait controller) | ✅ Done |
 | 5 | MPU6050 + PCA9685 driver | ✅ Done |
 | 6 | Leg odometry | ✅ Done |
-| 7 | State estimation (robot_localization EKF) | ❌ Not started |
+| 7 | State estimation (robot_localization EKF) | ✅ Done |
 | 8 | Mapping (slam_toolbox) | ❌ Not started |
 | 9 | Localization (AMCL + map_server) | ❌ Not started |
 | 10 | Planning (Nav2) | ❌ Not started |
@@ -73,7 +74,7 @@ exists because the deploy target is arm64.)
 1. ✅ **MPU6050 + PCA9685 driver** — combined ROS 2 bridge node (`hardware_bridge`)
 2. ✅ **Leg odometry** — compute `/leg_odom` (`nav_msgs/Odometry`) from joint kinematics
 3. ❌ **YDLidar X2** — `ydlidar_ros2_driver` → `/scan` (`sensor_msgs/LaserScan`)
-4. ❌ **State estimation → mapping → localization → planning** (identical config to sim, `use_sim_time:=false`)
+4. ✅ **State estimation** — `robot_localization` EKF fusing `/leg_odom` + `/imu`
 
 ---
 
