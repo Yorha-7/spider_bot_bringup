@@ -16,7 +16,7 @@ diagrams, CI, and execution plan.
 ## Packages
 
 | Package | Type | Role |
-|---|---|---|---|---|
+|---|---|---|
 | [`spider_msgs`](./spider_msgs) | `ament_cmake` | Robot-agnostic interfaces (shared with the future Lil Spider) |
 | [`big_bertha_description`](./big_bertha_description) | `ament_cmake` | URDF/xacro, meshes, `ros2_control` |
 | [`big_bertha_policy_controller`](./big_bertha_policy_controller) | `ament_cmake` (C++) | ONNX gait node: `/cmd_vel` → 12 joint targets |
