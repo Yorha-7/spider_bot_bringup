@@ -1,0 +1,22 @@
+# Hardware Bridge Configuration
+#
+# Combined MPU6050 IMU + PCA9685 servo driver node.
+# Communicates with the STM32U585 over the Arduino Router Bridge (serial RPC).
+#
+# Bridge API contract (implemented in STM32 firmware):
+#   read_imu     →  "gx gy gz ax ay az"   (6 floats, SI units: rad/s + m/s²)
+#   set_servos   ←  12 floats (pulse µs)  →  "ok"
+#   ping         →  "ok"
+
+/hardware_bridge:
+  ros__parameters:
+
+    imu_frame_id: "imu_link"
+    imu_rate: 200.0
+
+    servo_count: 12
+    servo_freq: 50
+    servo_angle_min: -1.57
+    servo_angle_max: 1.57
+    servo_pulse_min: 500
+    servo_pulse_max: 2500

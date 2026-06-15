@@ -16,12 +16,12 @@ diagrams, CI, and execution plan.
 ## Packages
 
 | Package | Type | Role |
-|---|---|---|
+|---|---|---|---|
 | [`spider_msgs`](./spider_msgs) | `ament_cmake` | Robot-agnostic interfaces (shared with the future Lil Spider) |
 | [`big_bertha_description`](./big_bertha_description) | `ament_cmake` | URDF/xacro, meshes, `ros2_control` |
 | [`big_bertha_policy_controller`](./big_bertha_policy_controller) | `ament_cmake` (C++) | ONNX gait node: `/cmd_vel` → 12 joint targets |
 | [`big_bertha_sim_bringup`](./big_bertha_sim_bringup) | `ament_cmake` | Gazebo sim: world, SLAM, Nav2, RViz |
-| [`big_bertha_bringup`](./big_bertha_bringup) | `ament_cmake` | Hardware bringup (empty stub — see BOM in PLAN.md) |
+| [`big_bertha_hardware_bringup`](./big_bertha_hardware_bringup) | `ament_python` | Hardware bringup: MPU6050 + PCA9685 via Bridge |
 
 ## Quick start (simulation)
 
@@ -48,6 +48,39 @@ description → simulation → locomotion → state_estimation → mapping → l
 Arduino UNO Q (4 GB, ROS 2 Jazzy, **arm64**) · 3D-printed frame · 12× MG995 servos ·
 1× YDLidar X2 · 1× MPU6050 IMU. (Hardware bringup is future work; the arm64 CI leg
 exists because the deploy target is arm64.)
+
+---
+## Progress
+
+| # | Module | Status |
+|---|---|---|
+| 0 | Environment, scaffold & CI | ✅ Done |
+| 1 | `spider_msgs` interfaces | ✅ Done |
+| 2 | URDF / description / meshes | ✅ Done |
+| 3 | Simulation (Gazebo world + bridge) | ✅ Done |
+| 4 | Locomotion (C++ ONNX gait controller) | ✅ Done |
+| 5 | MPU6050 + PCA9685 driver | ✅ Done |
+| 6 | Leg odometry | ❌ Not started |
+| 7 | State estimation (robot_localization EKF) | ❌ Not started |
+| 8 | Mapping (slam_toolbox) | ❌ Not started |
+| 9 | Localization (AMCL + map_server) | ❌ Not started |
+| 10 | Planning (Nav2) | ❌ Not started |
+| 11 | Integration + end-to-end verification | ❌ Not started |
+
+### Hardware bringup order
+
+1. ✅ **MPU6050 + PCA9685 driver** — combined ROS 2 bridge node (`hardware_bridge`)
+2. ❌ **Leg odometry** — compute `/odom` (`nav_msgs/Odometry`) from joint kinematics
+3. ❌ **YDLidar X2** — `ydlidar_ros2_driver` → `/scan` (`sensor_msgs/LaserScan`)
+4. ❌ **State estimation → mapping → localization → planning** (identical config to sim, `use_sim_time:=false`)
+
+---
+
+## Running the bridge node
+
+```bash
+ros2 launch big_bertha_hardware_bringup hardware_bridge.launch.py
+```
 
 ## License
 

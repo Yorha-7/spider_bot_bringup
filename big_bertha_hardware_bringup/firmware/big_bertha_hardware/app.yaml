@@ -1,0 +1,6 @@
+name: Big Bertha Hardware Bridge
+description: "MPU6050 IMU + PCA9685 servo driver for Big Bertha quadruped. Communicates with ROS 2 via Arduino Router Bridge."
+icon: 🕷️
+version: "1.0.0"
+ports: []
+bricks: []

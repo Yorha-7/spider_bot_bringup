@@ -2,23 +2,40 @@
 build/
 install/
 log/
+colcon_*/
 
 # Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.coverage
+coverage/
+
+# C / C++ (firmware intermediate artifacts)
+*.o
+*.a
+*.d
+
+# Environment / secrets
+.env
+.env.*
 
 # Editor / OS
 .vscode/
 .idea/
 *.swp
+*.code-workspace
 .DS_Store
 
 # Verification artifacts
 *.bag
 rosbag2_*/
 verification_artifacts/
+
+# General temp
+*.tmp
+*.bak
 
 # ONNX Runtime (downloaded at build time)
 .onnxruntime/
