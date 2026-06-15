@@ -23,12 +23,11 @@ namespace big_bertha_leg_odometry {
 /// @param ground_height   World-frame z of the ground plane (default 0.0).
 /// @param threshold       Tolerance above ground for stance classification.
 /// @return 4-element array where true = stance, false = swing.
-std::array<bool, kNumLegs> estimate_contact(
-    const std::array<Eigen::Vector3d, kNumLegs> &foot_positions,
-    const Eigen::Quaterniond &imu_orientation,
-    double ground_height = 0.0,
-    double threshold = 0.05);
+std::array<bool, kNumLegs>
+estimate_contact(const std::array<Eigen::Vector3d, kNumLegs> &foot_positions,
+                 const Eigen::Quaterniond &imu_orientation,
+                 double ground_height = 0.0, double threshold = 0.05);
 
-}  // namespace big_bertha_leg_odometry
+} // namespace big_bertha_leg_odometry
 
-#endif  // BIG_BERTHA_LEG_ODOMETRY__CONTACT_ESTIMATOR_HPP_
+#endif // BIG_BERTHA_LEG_ODOMETRY__CONTACT_ESTIMATOR_HPP_

@@ -27,51 +27,51 @@ namespace big_bertha_leg_odometry {
 //   121   | -0.028284,  0.028284,  0.069282 |  0.707107,  0.707107,  0
 // ---------------------------------------------------------------------------
 
-static LegGeometry make_leg_0_geometry() {  // BL (back-left)
+static LegGeometry make_leg_0_geometry() { // BL (back-left)
   LegGeometry g;
-  g.hip_offset     = Eigen::Vector3d(-0.0802, -0.0649, 0.0278);
-  g.hip_yaw_axis   = Eigen::Vector3d::UnitZ();
-  g.arm_a_offset   = Eigen::Vector3d(-0.015981, -0.055296, -0.0141);
-  g.hip_roll_axis  = Eigen::Vector3d(0.707107, -0.707107, 0.0).normalized();
-  g.arm_b_offset   = Eigen::Vector3d(-0.028284, -0.028284, 0.069282);
-  g.knee_axis      = Eigen::Vector3d(-0.707107, 0.707107, 0.0).normalized();
-  g.foot_offset    = Eigen::Vector3d::Zero();
+  g.hip_offset = Eigen::Vector3d(-0.0802, -0.0649, 0.0278);
+  g.hip_yaw_axis = Eigen::Vector3d::UnitZ();
+  g.arm_a_offset = Eigen::Vector3d(-0.015981, -0.055296, -0.0141);
+  g.hip_roll_axis = Eigen::Vector3d(0.707107, -0.707107, 0.0).normalized();
+  g.arm_b_offset = Eigen::Vector3d(-0.028284, -0.028284, 0.069282);
+  g.knee_axis = Eigen::Vector3d(-0.707107, 0.707107, 0.0).normalized();
+  g.foot_offset = Eigen::Vector3d::Zero();
   return g;
 }
 
-static LegGeometry make_leg_1_geometry() {  // FL (front-left)
+static LegGeometry make_leg_1_geometry() { // FL (front-left)
   LegGeometry g;
-  g.hip_offset     = Eigen::Vector3d(0.0802, -0.0649, 0.0278);
-  g.hip_yaw_axis   = Eigen::Vector3d::UnitZ();
-  g.arm_a_offset   = Eigen::Vector3d(0.055296, -0.015981, -0.0141);
-  g.hip_roll_axis  = Eigen::Vector3d(0.707107, 0.707107, 0.0).normalized();
-  g.arm_b_offset   = Eigen::Vector3d(0.028284, -0.028284, 0.069282);
-  g.knee_axis      = Eigen::Vector3d(-0.707107, -0.707107, 0.0).normalized();
-  g.foot_offset    = Eigen::Vector3d::Zero();
+  g.hip_offset = Eigen::Vector3d(0.0802, -0.0649, 0.0278);
+  g.hip_yaw_axis = Eigen::Vector3d::UnitZ();
+  g.arm_a_offset = Eigen::Vector3d(0.055296, -0.015981, -0.0141);
+  g.hip_roll_axis = Eigen::Vector3d(0.707107, 0.707107, 0.0).normalized();
+  g.arm_b_offset = Eigen::Vector3d(0.028284, -0.028284, 0.069282);
+  g.knee_axis = Eigen::Vector3d(-0.707107, -0.707107, 0.0).normalized();
+  g.foot_offset = Eigen::Vector3d::Zero();
   return g;
 }
 
-static LegGeometry make_leg_2_geometry() {  // FR (front-right)
+static LegGeometry make_leg_2_geometry() { // FR (front-right)
   LegGeometry g;
-  g.hip_offset     = Eigen::Vector3d(0.0802, 0.0649, 0.0278);
-  g.hip_yaw_axis   = Eigen::Vector3d::UnitZ();
-  g.arm_a_offset   = Eigen::Vector3d(0.015981, 0.055296, -0.0141);
-  g.hip_roll_axis  = Eigen::Vector3d(-0.707107, 0.707107, 0.0).normalized();
-  g.arm_b_offset   = Eigen::Vector3d(0.028284, 0.028284, 0.069282);
-  g.knee_axis      = Eigen::Vector3d(0.707107, -0.707107, 0.0).normalized();
-  g.foot_offset    = Eigen::Vector3d::Zero();
+  g.hip_offset = Eigen::Vector3d(0.0802, 0.0649, 0.0278);
+  g.hip_yaw_axis = Eigen::Vector3d::UnitZ();
+  g.arm_a_offset = Eigen::Vector3d(0.015981, 0.055296, -0.0141);
+  g.hip_roll_axis = Eigen::Vector3d(-0.707107, 0.707107, 0.0).normalized();
+  g.arm_b_offset = Eigen::Vector3d(0.028284, 0.028284, 0.069282);
+  g.knee_axis = Eigen::Vector3d(0.707107, -0.707107, 0.0).normalized();
+  g.foot_offset = Eigen::Vector3d::Zero();
   return g;
 }
 
-static LegGeometry make_leg_3_geometry() {  // BR (back-right)
+static LegGeometry make_leg_3_geometry() { // BR (back-right)
   LegGeometry g;
-  g.hip_offset     = Eigen::Vector3d(-0.0802, 0.0649, 0.0278);
-  g.hip_yaw_axis   = Eigen::Vector3d::UnitZ();
-  g.arm_a_offset   = Eigen::Vector3d(-0.055296, 0.015981, -0.0141);
-  g.hip_roll_axis  = Eigen::Vector3d(-0.707107, -0.707107, 0.0).normalized();
-  g.arm_b_offset   = Eigen::Vector3d(-0.028284, 0.028284, 0.069282);
-  g.knee_axis      = Eigen::Vector3d(0.707107, 0.707107, 0.0).normalized();
-  g.foot_offset    = Eigen::Vector3d::Zero();
+  g.hip_offset = Eigen::Vector3d(-0.0802, 0.0649, 0.0278);
+  g.hip_yaw_axis = Eigen::Vector3d::UnitZ();
+  g.arm_a_offset = Eigen::Vector3d(-0.055296, 0.015981, -0.0141);
+  g.hip_roll_axis = Eigen::Vector3d(-0.707107, -0.707107, 0.0).normalized();
+  g.arm_b_offset = Eigen::Vector3d(-0.028284, 0.028284, 0.069282);
+  g.knee_axis = Eigen::Vector3d(0.707107, 0.707107, 0.0).normalized();
+  g.foot_offset = Eigen::Vector3d::Zero();
   return g;
 }
 
@@ -109,8 +109,7 @@ compute_all_foot_positions(const std::array<double, kNumJoints> &joint_pos) {
   for (int leg = 0; leg < kNumLegs; ++leg) {
     const int base = leg * kJointsPerLeg;
     feet[leg] = compute_foot_position(
-        leg, Eigen::Vector3d(joint_pos[base + 0],
-                             joint_pos[base + 1],
+        leg, Eigen::Vector3d(joint_pos[base + 0], joint_pos[base + 1],
                              joint_pos[base + 2]));
   }
   return feet;
@@ -120,9 +119,8 @@ compute_all_foot_positions(const std::array<double, kNumJoints> &joint_pos) {
 // Finite-difference Jacobian
 // ---------------------------------------------------------------------------
 
-Eigen::Matrix3d compute_foot_jacobian(int leg_idx,
-                                       const Eigen::Vector3d &q,
-                                       double eps) {
+Eigen::Matrix3d compute_foot_jacobian(int leg_idx, const Eigen::Vector3d &q,
+                                      double eps) {
   Eigen::Matrix3d J;
   for (int j = 0; j < kJointsPerLeg; ++j) {
     Eigen::Vector3d q_plus = q;
@@ -136,4 +134,4 @@ Eigen::Matrix3d compute_foot_jacobian(int leg_idx,
   return J;
 }
 
-}  // namespace big_bertha_leg_odometry
+} // namespace big_bertha_leg_odometry

@@ -45,10 +45,9 @@ public:
     }
 
     // --------------------------- Pub / Sub ------------------------------
-    odom_pub_ = create_publisher<nav_msgs::msg::Odometry>(
-        "/leg_odom", rclcpp::QoS(1));
-    tf_broadcaster_ =
-        std::make_unique<tf2_ros::TransformBroadcaster>(this);
+    odom_pub_ =
+        create_publisher<nav_msgs::msg::Odometry>("/leg_odom", rclcpp::QoS(1));
+    tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
     joint_sub_ = create_subscription<sensor_msgs::msg::JointState>(
         "/joint_states", rclcpp::SensorDataQoS(),
@@ -63,8 +62,7 @@ public:
         std::chrono::duration_cast<std::chrono::nanoseconds>(period),
         std::bind(&LegOdometryNode::control_loop, this));
 
-    RCLCPP_INFO(get_logger(),
-                "leg_odometry_node up: rate=%.1f Hz, frame=%s",
+    RCLCPP_INFO(get_logger(), "leg_odometry_node up: rate=%.1f Hz, frame=%s",
                 publish_rate_, odom_frame_.c_str());
   }
 
@@ -73,10 +71,13 @@ private:
     std::lock_guard<std::mutex> lk(state_mutex_);
     for (size_t i = 0; i < msg->name.size(); ++i) {
       auto it = joint_index_.find(msg->name[i]);
-      if (it == joint_index_.end()) continue;
+      if (it == joint_index_.end())
+        continue;
       const int idx = it->second;
-      if (i < msg->position.size()) joint_pos_[idx] = msg->position[i];
-      if (i < msg->velocity.size()) joint_vel_[idx] = msg->velocity[i];
+      if (i < msg->position.size())
+        joint_pos_[idx] = msg->position[i];
+      if (i < msg->velocity.size())
+        joint_vel_[idx] = msg->velocity[i];
     }
     joint_stamp_ = msg->header.stamp;
     have_joints_ = true;
@@ -84,17 +85,18 @@ private:
 
   void on_imu(const sensor_msgs::msg::Imu::SharedPtr msg) {
     std::lock_guard<std::mutex> lk(state_mutex_);
-    imu_orientation_ = Eigen::Quaterniond(
-        msg->orientation.w, msg->orientation.x,
-        msg->orientation.y, msg->orientation.z);
-    imu_ang_vel_ = Eigen::Vector3d(
-        msg->angular_velocity.x, msg->angular_velocity.y,
-        msg->angular_velocity.z);
+    imu_orientation_ =
+        Eigen::Quaterniond(msg->orientation.w, msg->orientation.x,
+                           msg->orientation.y, msg->orientation.z);
+    imu_ang_vel_ =
+        Eigen::Vector3d(msg->angular_velocity.x, msg->angular_velocity.y,
+                        msg->angular_velocity.z);
     have_imu_ = true;
   }
 
   void control_loop() {
-    if (!have_joints_) return;
+    if (!have_joints_)
+      return;
 
     // Snapshot joint state.
     std::array<double, bblo::kNumJoints> pos, vel;
@@ -116,10 +118,12 @@ private:
 
     // Sanitize joint data.
     for (auto &v : pos) {
-      if (!std::isfinite(v)) v = 0.0;
+      if (!std::isfinite(v))
+        v = 0.0;
     }
     for (auto &v : vel) {
-      if (!std::isfinite(v)) v = 0.0;
+      if (!std::isfinite(v))
+        v = 0.0;
     }
 
     // 1. Forward kinematics: compute foot positions in base frame.
@@ -160,7 +164,8 @@ private:
       omega_body = imu_omega;
       Eigen::Vector3d sum_v = Eigen::Vector3d::Zero();
       for (int leg = 0; leg < bblo::kNumLegs; ++leg) {
-        if (!contact[leg]) continue;
+        if (!contact[leg])
+          continue;
         sum_v += -omega_body.cross(foot_positions[leg]) - foot_vel_base[leg];
         ++stance_count;
       }
@@ -176,7 +181,8 @@ private:
       Eigen::VectorXd b(3 * bblo::kNumLegs);
       int row = 0;
       for (int leg = 0; leg < bblo::kNumLegs; ++leg) {
-        if (!contact[leg]) continue;
+        if (!contact[leg])
+          continue;
         const Eigen::Vector3d p = foot_positions[leg];
         A.block<3, 3>(row, 0) = Eigen::Matrix3d::Identity();
         A.block<3, 3>(row, 3) = -skew_symmetric(p);
@@ -203,8 +209,10 @@ private:
 
     // Sanitize outputs.
     for (int i = 0; i < 3; ++i) {
-      if (!std::isfinite(v_body[i])) v_body[i] = 0.0;
-      if (!std::isfinite(omega_body[i])) omega_body[i] = 0.0;
+      if (!std::isfinite(v_body[i]))
+        v_body[i] = 0.0;
+      if (!std::isfinite(omega_body[i]))
+        omega_body[i] = 0.0;
     }
 
     // 5. Integrate pose (dead-reckoning from twist).
@@ -238,12 +246,11 @@ private:
     odom.pose.pose.orientation.w = base_orientation_.w();
 
     // Pose covariance (diagonal): scale inversely with stance count.
-    const double pc = stance_count > 0
-                          ? covariance_scale_ / stance_count
-                          : covariance_scale_;
+    const double pc =
+        stance_count > 0 ? covariance_scale_ / stance_count : covariance_scale_;
     auto &pcov = odom.pose.covariance;
-    pcov[0] = pcov[7] = pcov[14] = pc;        // x, y, z
-    pcov[21] = pcov[28] = pcov[35] = 0.01;    // roll, pitch, yaw
+    pcov[0] = pcov[7] = pcov[14] = pc;     // x, y, z
+    pcov[21] = pcov[28] = pcov[35] = 0.01; // roll, pitch, yaw
 
     // Twist (body frame).
     odom.twist.twist.linear.x = v_body.x();
@@ -255,8 +262,8 @@ private:
 
     // Twist covariance.
     auto &tcov = odom.twist.covariance;
-    tcov[0] = tcov[7] = tcov[14] = pc;        // linear
-    tcov[21] = tcov[28] = tcov[35] = 0.01;    // angular
+    tcov[0] = tcov[7] = tcov[14] = pc;     // linear
+    tcov[21] = tcov[28] = tcov[35] = 0.01; // angular
 
     odom_pub_->publish(odom);
 
@@ -279,9 +286,7 @@ private:
 
   static Eigen::Matrix3d skew_symmetric(const Eigen::Vector3d &v) {
     Eigen::Matrix3d S;
-    S << 0.0, -v.z(), v.y(),
-         v.z(), 0.0, -v.x(),
-         -v.y(), v.x(), 0.0;
+    S << 0.0, -v.z(), v.y(), v.z(), 0.0, -v.x(), -v.y(), v.x(), 0.0;
     return S;
   }
 
