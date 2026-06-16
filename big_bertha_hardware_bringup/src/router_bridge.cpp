@@ -1,12 +1,14 @@
 #include "big_bertha_hardware_bringup/router_bridge.hpp"
 
 #include <algorithm>
+#include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include <fcntl.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -42,6 +44,7 @@ void RouterBridge::connect() {
     sock_ = -1;
     throw std::runtime_error("RouterBridge: connect(" + sock_path_ + ") failed");
   }
+  next_id_ = 1;
 }
 
 void RouterBridge::send_raw(const std::vector<uint8_t> & data) {
@@ -64,41 +67,80 @@ void RouterBridge::send_raw(const std::vector<uint8_t> & data) {
 
 std::vector<uint8_t> RouterBridge::recv_raw() {
   std::vector<uint8_t> buf;
-  // set a 1 second timeout on the socket
-  struct timeval tv;
-  tv.tv_sec = 1;
-  tv.tv_usec = 0;
-  setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+  buf.reserve(1024);
 
+  struct pollfd pfd;
+  pfd.fd = sock_;
+  pfd.events = POLLIN;
+
+  // Wait up to 5s for the first byte of the response
+  {
+    int ret;
+    do {
+      ret = poll(&pfd, 1, 5000);
+    } while (ret < 0 && errno == EINTR);
+
+    if (ret < 0) {
+      throw std::runtime_error("RouterBridge: poll() failed");
+    }
+    if (ret == 0) {
+      throw std::runtime_error("RouterBridge: timeout waiting for response");
+    }
+  }
+
+  // Read all chunks with a short gap timeout
   while (true) {
-    uint8_t chunk[4096];
-    ssize_t n = ::read(sock_, chunk, sizeof(chunk));
-    if (n < 0) {
-      if (buf.empty()) {
-        throw std::runtime_error("RouterBridge: read timeout with no data");
-      }
-      break;  // partial data received, try to parse what we have
+    uint8_t chunk[8192];
+    ssize_t n;
+    do {
+      n = ::read(sock_, chunk, sizeof(chunk));
+    } while (n < 0 && errno == EINTR);
+
+    if (n > 0) {
+      buf.insert(buf.end(), chunk, chunk + n);
+    } else if (n == 0) {
+      break;
+    } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      // Spurious poll wakeup — poll again
+      int ret;
+      do {
+        ret = poll(&pfd, 1, 10);
+      } while (ret < 0 && errno == EINTR);
+      if (ret <= 0 || !(pfd.revents & POLLIN)) break;
+      continue;
+    } else {
+      throw std::runtime_error("RouterBridge: read error");
     }
-    if (n == 0) {
-      break;  // EOF
-    }
-    buf.insert(buf.end(), chunk, chunk + n);
-    // Try to parse: if Unpacker succeeds and we've consumed the whole buffer, we're done
+
+    // Try parsing — if complete, return immediately
     try {
       mini_msgpack::Unpacker chk(buf);
-      while (!chk.done()) {
-        chk.next();
-      }
-      break;  // successfully parsed complete msgpack
+      while (!chk.done()) { chk.next(); }
+      return buf;
     } catch (const std::runtime_error &) {
-      continue;  // incomplete, need more data
+      // Incomplete — wait up to 10ms for more
     }
+
+    int ret;
+    do {
+      ret = poll(&pfd, 1, 10);
+    } while (ret < 0 && errno == EINTR);
+    if (ret <= 0 || !(pfd.revents & POLLIN)) break;
+  }
+
+  if (buf.empty()) {
+    throw std::runtime_error("RouterBridge: no data received");
   }
   return buf;
 }
 
 std::string RouterBridge::call(const std::string & method,
                                const std::string & args) {
+  // Reuse the same socket across calls for low latency
+  if (sock_ < 0) {
+    connect();
+  }
+
   std::vector<uint8_t> buf;
   mini_msgpack::Packer pk(buf);
   pk.pack_array(4);       // [0, id, method, args...]
@@ -112,10 +154,6 @@ std::string RouterBridge::call(const std::string & method,
     pk.pack_str(args);
   }
 
-  if (sock_ < 0) {
-    connect();
-  }
-
   try {
     send_raw(buf);
   } catch (const std::runtime_error & e) {
@@ -126,7 +164,8 @@ std::string RouterBridge::call(const std::string & method,
   std::vector<uint8_t> resp;
   try {
     resp = recv_raw();
-  } catch (const std::runtime_error & e) {
+  } catch (const std::runtime_error &) {
+    // recv failed — socket may have stale data; reconnect on next call
     close();
     throw;
   }
@@ -137,21 +176,41 @@ std::string RouterBridge::call(const std::string & method,
   }
 
   mini_msgpack::Unpacker up(resp);
-  up.expect(mini_msgpack::Unpacker::Value::ARRAY);  // [type, id, error, result]
-  up.next();  // skip type
-  up.next();  // skip id
-  mini_msgpack::Unpacker::Value err_val = up.next();
-  if (err_val.type != mini_msgpack::Unpacker::Value::NIL) {
-    std::string err = err_val.type == mini_msgpack::Unpacker::Value::STR
-                          ? err_val.str_val
-                          : "RPC error";
-    throw std::runtime_error("RouterBridge RPC error: " + err);
-  }
-  mini_msgpack::Unpacker::Value result = up.next();
-  if (result.type == mini_msgpack::Unpacker::Value::NIL) {
+  try {
+    up.expect(mini_msgpack::Unpacker::Value::ARRAY);  // [type, id, error, result]
+    up.next();  // skip type
+    up.next();  // skip id
+    mini_msgpack::Unpacker::Value err_val = up.next();
+    if (err_val.type != mini_msgpack::Unpacker::Value::NIL) {
+      std::string err_msg = "RPC error";
+      if (err_val.type == mini_msgpack::Unpacker::Value::STR) {
+        err_msg = err_val.str_val;
+      } else if (err_val.type == mini_msgpack::Unpacker::Value::ARRAY) {
+        up.next();  // skip error code
+        mini_msgpack::Unpacker::Value msg_val = up.next();
+        if (msg_val.type == mini_msgpack::Unpacker::Value::STR) {
+          err_msg = msg_val.str_val;
+        }
+      }
+      throw std::runtime_error("RouterBridge RPC error: " + err_msg);
+    }
+    mini_msgpack::Unpacker::Value result = up.next();
+    if (result.type == mini_msgpack::Unpacker::Value::NIL) {
+      return "";
+    }
+    if (result.type == mini_msgpack::Unpacker::Value::STR) {
+      return result.str_val;
+    }
     return "";
+  } catch (const std::runtime_error & e) {
+    std::string hex;
+    for (size_t i = 0; i < resp.size(); ++i) {
+      char buf8[4];
+      std::snprintf(buf8, sizeof(buf8), "%02x", resp[i]);
+      hex += buf8;
+    }
+    throw std::runtime_error(std::string(e.what()) + " [raw: " + hex + "]");
   }
-  return result.str_val;
 }
 
 void RouterBridge::close() {
