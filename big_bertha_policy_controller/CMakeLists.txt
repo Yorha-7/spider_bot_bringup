@@ -33,8 +33,13 @@ find_library(ONNXRUNTIME_LIB onnxruntime
 
 if(NOT ONNXRUNTIME_INCLUDE_DIR OR NOT ONNXRUNTIME_LIB)
   message(STATUS "ONNX Runtime not found — downloading v${ONNXRUNTIME_VERSION}...")
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    set(ORT_PLATFORM "linux-aarch64")
+  else()
+    set(ORT_PLATFORM "linux-x64")
+  endif()
   set(ort_url
-    "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}.tgz")
+    "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/onnxruntime-${ORT_PLATFORM}-${ONNXRUNTIME_VERSION}.tgz")
   set(ort_tgz "${CMAKE_BINARY_DIR}/ort-${ONNXRUNTIME_VERSION}.tgz")
 
   file(DOWNLOAD "${ort_url}" "${ort_tgz}" SHOW_PROGRESS STATUS ort_status)
